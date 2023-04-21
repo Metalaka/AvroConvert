@@ -106,10 +106,20 @@ namespace SolTechnology.Avro.AvroObjectServices.Write.Resolvers
             var calHash = Expression.Assign(nameHash,
                 Expression.Call(memberName, typeof(object).GetMethod("GetHashCode")));
             var cases = new List<SwitchCase>();
+
             foreach (var propertyInfo in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.FlattenHierarchy))
             {
+                // Bind the physical property to a getter
+                var getterName = propertyInfo.Name;
+                var dataMemberAttribute = propertyInfo.GetCustomAttribute<DataMemberAttribute>();
+                if (dataMemberAttribute?.Name is not null)
+                {
+                    // If there is a DataMemberAttribute, we want to bind the getter with that value
+                    getterName = dataMemberAttribute.Name;
+                }
+
                 var property = Expression.Property(Expression.Convert(instance, type), propertyInfo.Name);
-                var propertyHash = Expression.Constant(propertyInfo.Name.GetHashCode(), typeof(int));
+                var propertyHash = Expression.Constant(getterName.GetHashCode(), typeof(int));
 
                 cases.Add(Expression.SwitchCase(Expression.Convert(property, typeof(object)), propertyHash));
             }
